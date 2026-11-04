@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "pwm_generator")(type "KiCad")(uri "${KIPRJMOD}/pwm_generator.kicad_sym")(options "")(descr "Symboly projektu PWM generator"))
+)

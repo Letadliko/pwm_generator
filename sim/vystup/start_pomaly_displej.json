@@ -1,0 +1,61 @@
+{
+ "displayReadyMs": 250,
+ "firstAccessNs": 200350328,
+ "firstAckNs": 400567680,
+ "nacks": 1,
+ "lit": true,
+ "i2c": [
+  {
+   "t": 200350328,
+   "ack": false,
+   "bytes": 0,
+   "kind": "-"
+  },
+  {
+   "t": 400567680,
+   "ack": true,
+   "bytes": 27,
+   "kind": "cmd"
+  },
+  {
+   "t": 400668032,
+   "ack": true,
+   "bytes": 7,
+   "kind": "cmd"
+  },
+  {
+   "t": 400786688,
+   "ack": true,
+   "bytes": 513,
+   "kind": "data"
+  },
+  {
+   "t": 405629632,
+   "ack": true,
+   "bytes": 7,
+   "kind": "cmd"
+  },
+  {
+   "t": 405747848,
+   "ack": true,
+   "bytes": 513,
+   "kind": "data"
+  },
+  {
+   "t": 1409530296,
+   "ack": true,
+   "bytes": 7,
+   "kind": "cmd"
+  },
+  {
+   "t": 1409648952,
+   "ack": true,
+   "bytes": 513,
+   "kind": "data"
+  }
+ ],
+ "log": [
+  "[   200.5 ms] Displej neodpovida, pokus 1/5",
+  "[  1407.8 ms] Generator obdelnikoveho signalu (PWM na GPIO20)"
+ ]
+}

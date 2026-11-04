@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>Generátor PWM</title>
+<style>
+  @page { size: A4; margin: 18mm 20mm; }
+  body { font-family: Arial, "Liberation Sans", sans-serif; font-size: 11pt; line-height: 1.4; margin: 0; }
+  h1 { font-size: 20pt; margin: 0 0 6mm; }
+  h2 { font-size: 14pt; margin: 7mm 0 3mm; break-after: avoid; }
+  .strana { break-before: page; }
+  .strana > h2:first-child { margin-top: 0; }
+  p, li { orphans: 3; widows: 3; }
+  table, figure, pre, ul, .displeje { break-inside: avoid; }
+  table { border-collapse: collapse; margin: 2mm 0 4mm; }
+  th, td { border: 1px solid #888; padding: 1mm 2.5mm; text-align: left; }
+  th { background: #eee; }
+  td.cislo { text-align: right; }
+  figure { margin: 4mm 0 0; }
+  figure img { width: 100%; }
+  figcaption, .popisek { font-size: 9.5pt; color: #444; margin-top: 1mm; }
+  .displeje { display: flex; gap: 3mm; margin-top: 3mm; }
+  .displeje img { width: calc(50% - 1.5mm); min-width: 0; image-rendering: pixelated; }
+  pre { background: #f2f2f2; padding: 2mm 3mm; font-size: 9.5pt; }
+  code { font-size: 10pt; }
+</style>
+</head>
+<body>
+
+<!-- strana 1 -->
+<h1>Generátor PWM s Raspberry Pi Pico</h1>
+
+<h2>1. Popis</h2>
+<p>Zařízení generuje obdélníkový signál, u kterého jde nastavit kmitočet a střídu. Hodnoty se
+zadávají na klávesnici 4×4 a zobrazují se na malém OLED displeji. Signál je na pinu GPIO20
+(pin 26) Raspberry Pi Pico.</p>
+<p>Signál vyrábí hardwarové PWM v čipu RP2040, takže program ho jen nastaví a dál se o něj
+nestará. Kmitočet jde nastavit od 8 Hz do 4 MHz a střída od 0 do 100 %.</p>
+<p>Použité součástky:</p>
+<ul>
+  <li>Raspberry Pi Pico</li>
+  <li>membránová klávesnice 4×4</li>
+  <li>OLED displej 0,91" 128×32 s řadičem SSD1306 (I2C)</li>
+  <li>kolíková lišta pro připojení osciloskopu, vodiče, nepájivé pole</li>
+</ul>
+
+<h2>2. Schéma zapojení</h2>
+<p>Schéma je nakreslené v KiCadu (soubor <code>schema/pwm_generator.kicad_sch</code>) a je na další
+straně. Klávesnice nepotřebuje žádné rezistory, protože se používají vnitřní pull-down rezistory
+v Picu.</p>
+<table>
+  <tr><th>Co</th><th>GPIO</th><th>Pin na Picu</th></tr>
+  <tr><td>klávesnice – řádky (vývody 1–4)</td><td>GPIO2–GPIO5</td><td>4, 5, 6, 7</td></tr>
+  <tr><td>klávesnice – sloupce (vývody 5–8)</td><td>GPIO6–GPIO9</td><td>9, 10, 11, 12</td></tr>
+  <tr><td>displej SDA</td><td>GPIO10</td><td>14</td></tr>
+  <tr><td>displej SCL</td><td>GPIO11</td><td>15</td></tr>
+  <tr><td>displej VCC / GND</td><td>3V3 / GND</td><td>36 / 23</td></tr>
+  <tr><td>výstup PWM</td><td>GPIO20</td><td>26</td></tr>
+</table>
+<p>Pozor, displeje od různých výrobců mají vývody v různém pořadí, je potřeba se podívat na
+popisky na modulu.</p>
+
+<!-- sem build.py vloží stranu se schématem z KiCadu -->
+
+<!-- strana 3 -->
+<div class="strana">
+<h2>3. Ovládání</h2>
+<table>
+  <tr><th>Klávesa</th><th>Co dělá</th></tr>
+  <tr><td>A</td><td>zadávání kmitočtu (Hz)</td></tr>
+  <tr><td>B</td><td>zadávání střídy (%)</td></tr>
+  <tr><td>C</td><td>spustí generátor</td></tr>
+  <tr><td>D</td><td>zastaví generátor (výstup je pak v nule)</td></tr>
+  <tr><td>0–9</td><td>číslice</td></tr>
+  <tr><td>*</td><td>smaže poslední číslici</td></tr>
+  <tr><td>#</td><td>smaže celé číslo</td></tr>
+</table>
+<p>Například 1 kHz se střídou 25 % se nastaví takto: <b>A 1 0 0 0 B 2 5 C</b>.</p>
+<p>Na displeji jsou dva řádky: kmitočet a střída. Šipka <code>&gt;</code> ukazuje, co se právě
+zadává. Vpravo nahoře je <code>ON</code>, když generátor běží, a <code>OFF</code>, když je zastavený.
+Když je zadaný kmitočet menší než 8 Hz, ukáže se <code>---</code> a <code>min 8</code> a nic se
+negeneruje.</p>
+<div class="displeje">
+  <img src="../sim/vystup/04_bezi_1kHz_50pct.png" alt="">
+  <img src="../sim/vystup/08_kmitocet_pod_minimem.png" alt="">
+</div>
+<p class="popisek">Displej při 1 kHz / 50 % a při kmitočtu pod 8 Hz (obrázky z emulátoru).</p>
+
+<h2>4. Omezení</h2>
+<ul>
+  <li>Kmitočet jde nastavit jen od 8 Hz do 4 MHz. Níž to 16bitové PWM v Picu neumí.</li>
+  <li>U vyšších kmitočtů se kmitočet trochu liší od zadaného, protože PWM počítá s celými
+    takty 125 MHz. Třeba místo 4 MHz je na výstupu 4,032 MHz a místo 2 MHz 1,984 MHz.
+    Displej ukazuje zadanou hodnotu, ne tu skutečnou.</li>
+  <li>U vysokých kmitočtů nejde střída nastavit přesně. Při 4 MHz je místo 50 % 51,6 %.</li>
+  <li>Hodnota se mění hned při psaní. Když generátor běží a zadává se 1235, na výstupu se
+    postupně objeví 1, 12, 123 a 1235 Hz. Lepší je generátor zastavit (D), zadat hodnoty
+    a pak spustit (C).</li>
+  <li>Výstup má 3,3 V a není nijak chráněný, nesmí se k němu připojit větší zátěž.</li>
+  <li>Klávesnice bere jen jednu klávesu najednou.</li>
+</ul>
+</div>
+
+<!-- strana 4 -->
+<div class="strana">
+<h2>5. Program</h2>
+<p>Program je napsaný v jazyce C a používá Pico SDK. Skládá se z těchto souborů:</p>
+<ul>
+  <li><code>pwm_generator.c</code> – hlavní program (klávesnice, zadávání, nastavení PWM, displej),</li>
+  <li><code>ssd1306.c</code> a <code>ssd1306.h</code> – ovládání displeje přes I2C,</li>
+  <li><code>font8x16.c</code> a <code>font8x16.h</code> – písmo pro displej,</li>
+  <li><code>CMakeLists.txt</code> – popis, jak se program sestaví.</li>
+</ul>
+<p>Program vychází z kódu ze zadání. Změněné jsou piny podle zapojení a je opravených pár chyb,
+např. dělení nulou při kmitočtu 0 a zákmit do nuly při střídě 100 %.</p>
+<p>Hlavní smyčka běží pořád dokola každých 10 ms. Nejdřív se přečte klávesnice: program
+postupně dá na každý řádek log. 1 a dívá se, na kterém sloupci se objeví. Klávesa se vezme,
+až když je stisknutá ve dvou čteních po sobě, aby nevadily zákmity tlačítek. Když se změní
+kmitočet nebo střída, program spočítá děličku a periodu pro PWM a nastaví je. Nakonec se
+překreslí displej.</p>
+<p>Displej po zapnutí napájení chvíli nereaguje, a když se mu pošlou příkazy moc brzo, zůstane
+tmavý. Proto program po startu čeká 200 ms a teprve potom displej nastaví. Kdyby displej
+neodpověděl, zkusí to znovu.</p>
+
+<h2>6. Sestavení programu</h2>
+<p>V souboru <code>CMakeLists.txt</code> se načte Pico SDK, nastaví se, ze kterých souborů se
+program skládá, a připojí se knihovny pro GPIO, I2C a PWM. Výpis přes <code>printf</code> jde
+přes USB. Na konci se vytvoří soubor <code>.uf2</code>, který se nahraje do Pica.</p>
+<pre>export PICO_SDK_PATH=/cesta/k/pico-sdk
+cmake -S . -B build
+cmake --build build</pre>
+<p>Ve VS Code s rozšířením Raspberry Pi Pico stačí projekt otevřít přes <i>Import Project</i>
+a dát <i>Compile</i>. Hotový soubor <code>pwm_generator.uf2</code> se nahraje tak, že se při
+připojování Pica k USB drží tlačítko BOOTSEL a soubor se přetáhne na disk RPI-RP2.</p>
+</div>
+
+<!-- strana 5 -->
+<div class="strana">
+<h2>7. Testování</h2>
+<p>Program byl vyzkoušený v emulátoru Raspberry Pi Pico (rp2040js), ke kterému byl připojený
+model displeje a klávesnice. Emulátor spouští přímo přeložený soubor <code>.uf2</code>.
+Na výstupu GPIO20 se měřil kmitočet a střída:</p>
+{{MERENI}}
+<p>Vyzkoušelo se taky, že funguje mazání číslic, omezení hodnot (nad 4 MHz a nad 100 %),
+zastavení klávesou D a že displej ukazuje správné hodnoty. Celkem {{TESTY}}.
+S pauzou 200 ms se displej po startu nastavil hned napoprvé, bez pauzy první příkazy odmítl.</p>
+<figure>
+  <img src="obrazky/prubehy_pwm.png" alt="Průběhy PWM">
+  <figcaption>Průběhy na výstupu GPIO20 z emulátoru.</figcaption>
+</figure>
+</div>
+
+</body>
+</html>

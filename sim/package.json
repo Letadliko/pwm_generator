@@ -1,0 +1,13 @@
+{
+  "name": "pwm-generator-sim",
+  "private": true,
+  "type": "module",
+  "description": "Emulace firmwaru pwm_generator v emulátoru RP2040 (rp2040js) s modelem SSD1306 a klávesnice 4x4",
+  "scripts": {
+    "sim": "tsx sim.ts"
+  },
+  "dependencies": {
+    "rp2040js": "1.4.1",
+    "tsx": "4.19.2"
+  }
+}
